@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Lista de Deseos 🎀</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎀 Mi Lista de Deseos 🎀</h1>
+            <p>Comparte conmigo qué te gustaría recibir</p>
+            <button id="adminBtn" class="admin-btn">🔑 Admin</button>
+        </div>
+
+        <!-- Modal de contraseña -->
+        <div id="passwordModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>Acceso de administrador</h2>
+                <form id="passwordForm">
+                    <div class="form-group">
+                        <label for="adminPassword">Contraseña:</label>
+                        <input type="password" id="adminPassword" placeholder="Ingresa la contraseña" required>
+                    </div>
+                    <button type="submit" class="add-btn">Desbloquear</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="add-item-section" id="addItemSection" style="display: none;">
+            <h2>Agregar un nuevo deseo</h2>
+            <form id="addItemForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="title">Nombre del artículo</label>
+                        <input type="text" id="title" placeholder="Ej: Bolso de cuero" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="priority">Prioridad</label>
+                        <select id="priority" required>
+                            <option value="high">Alta</option>
+                            <option value="medium" selected>Media</option>
+                            <option value="low">Baja</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Descripción (opcional)</label>
+                    <textarea id="description" placeholder="Describe qué buscas, colores, tamaños, etc."></textarea>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="imageUrl">URL de imagen (opcional)</label>
+                        <input type="url" id="imageUrl" placeholder="https://ejemplo.com/imagen.jpg">
+                    </div>
+                    <div class="form-group">
+                        <label for="shopLink">Link de tienda (opcional)</label>
+                        <input type="url" id="shopLink" placeholder="https://tienda.com/producto">
+                    </div>
+                </div>
+
+                <button type="submit" class="add-btn">
+                    <i class="fas fa-plus"></i> Agregar a mi lista
+                </button>
+            </form>
+        </div>
+
+        <div id="itemsContainer" class="items-grid"></div>
+
+        <div class="footer">
+            <p>✨ Comparte el link de esta página con tus amigos y familia ✨</p>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
