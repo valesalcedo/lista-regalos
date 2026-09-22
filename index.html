@@ -11,6 +11,9 @@
     <div class="container">
         <div class="header">
             <h1>🎀 Mi Lista de Deseos 🎀</h1>
+            <div class="profile-pic-container">
+                <img id="profilePic" src="https://via.placeholder.com/150/be185d/ffffff?text=Tu+Foto" alt="Tu foto">
+            </div>
             <p>Comparte conmigo qué te gustaría recibir</p>
             <button id="adminBtn" class="admin-btn">🔑 Admin</button>
         </div>
@@ -36,7 +39,18 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label for="title">Nombre del artículo</label>
-                        <input type="text" id="title" placeholder="Ej: Bolso de cuero" required>
+                        <input type="text" id="title" placeholder="Ej: Chaleco butter yellow" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="price">Precio aproximado ($)</label>
+                        <input type="number" id="price" placeholder="50000" min="0" step="1000" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="imageUrl">Foto del deseo (URL)*</label>
+                        <input type="url" id="imageUrl" placeholder="https://ejemplo.com/imagen.jpg" required>
                     </div>
                     <div class="form-group">
                         <label for="priority">Prioridad</label>
@@ -53,21 +67,26 @@
                     <textarea id="description" placeholder="Describe qué buscas, colores, tamaños, etc."></textarea>
                 </div>
 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="imageUrl">URL de imagen (opcional)</label>
-                        <input type="url" id="imageUrl" placeholder="https://ejemplo.com/imagen.jpg">
-                    </div>
-                    <div class="form-group">
-                        <label for="shopLink">Link de tienda (opcional)</label>
-                        <input type="url" id="shopLink" placeholder="https://tienda.com/producto">
-                    </div>
+                <div class="form-group">
+                    <label for="shopLinks">Links a tiendas (opcional)</label>
+                    <textarea id="shopLinks" placeholder="Ej: Amazon - https://amazon.com/producto&#10;Falabella - https://falabella.com/producto&#10;Tienda X - https://tiendax.com/producto&#10;&#10;Uno por línea con el formato: Nombre - URL"></textarea>
                 </div>
 
                 <button type="submit" class="add-btn">
                     <i class="fas fa-plus"></i> Agregar a mi lista
                 </button>
             </form>
+        </div>
+
+        <div class="filter-section">
+            <h3>Filtrar por precio</h3>
+            <div class="price-filter">
+                <label>
+                    <input type="range" id="priceRange" min="0" max="500" value="500" step="10">
+                    <span>Hasta $<span id="priceValue">500</span></span>
+                </label>
+                <button id="resetFilter" class="reset-btn">Limpiar filtro</button>
+            </div>
         </div>
 
         <div id="itemsContainer" class="items-grid"></div>
