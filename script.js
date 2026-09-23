@@ -1,30 +1,78 @@
 // ⚠️ CAMBIA ESTA CONTRASEÑA POR LA QUE QUIERAS
 const ADMIN_PASSWORD = "misdeseos123";
 
-// Items de ejemplo
-const defaultItems = [
-    {
-        title: "Libreta con diseño",
-        description: "Libreta bonita para notas o dibujar",
-        price: 15000,
-        priority: "low",
-        imageUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Crect fill='%23fbcfe8' width='200' height='200'/%3E%3Crect fill='%23be185d' x='20' y='20' width='160' height='160' rx='8'/%3E%3Ctext x='100' y='110' font-size='40' fill='%23fff' text-anchor='middle' dominant-baseline='middle'%3E📓%3C/text%3E%3C/svg%3E",
-        shopLinks: []
-    }
-];
+// Credenciales de Supabase
+const SUPABASE_URL = "https://ilckjbyarvueetmquzpm.supabase.co";
+const SUPABASE_KEY = "sb_publishable_OYWPasa7CQC71CgAuR76zw_Acp0bBUS";
 
 // Variables globales
 let isAdmin = false;
 
-// Cargar items del localStorage
-function loadItems() {
-    const saved = localStorage.getItem('wishItems');
-    return saved ? JSON.parse(saved) : defaultItems;
+// Función para hacer requests a Supabase
+async function supabaseRequest(method, endpoint, body = null) {
+    const options = {
+        method: method,
+        headers: {
+            'Content-Type': 'application/json',
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`
+        }
+    };
+
+    if (body) {
+        options.body = JSON.stringify(body);
+    }
+
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/${endpoint}`, options);
+    
+    if (!response.ok) {
+        throw new Error(`Error: ${response.statusText}`);
+    }
+
+    return await response.json();
 }
 
-// Guardar items en localStorage
-function saveItems(items) {
-    localStorage.setItem('wishItems', JSON.stringify(items));
+// Cargar items desde Supabase
+async function loadItems() {
+    try {
+        const items = await supabaseRequest('GET', 'wishlist?order=created_at.desc');
+        return items || [];
+    } catch (error) {
+        console.error('Error cargando items:', error);
+        return [];
+    }
+}
+
+// Guardar un nuevo item
+async function saveNewItem(item) {
+    try {
+        const result = await supabaseRequest('POST', 'wishlist', item);
+        return result;
+    } catch (error) {
+        console.error('Error guardando item:', error);
+        throw error;
+    }
+}
+
+// Actualizar un item
+async function updateItem(id, item) {
+    try {
+        const result = await supabaseRequest('PATCH', `wishlist?id=eq.${id}`, item);
+        return result;
+    } catch (error) {
+        console.error('Error actualizando item:', error);
+        throw error;
+    }
+}
+
+// Eliminar un item
+async function deleteItem(id) {
+    try {
+        await supabaseRequest('DELETE', `wishlist?id=eq.${id}`);
+    } catch (error) {
+        console.error('Error eliminando item:', error);
+        throw error;
+    }
 }
 
 // Parsear links de tiendas
@@ -42,57 +90,84 @@ function parseShopLinks(text) {
         .filter(link => link.url && (link.url.startsWith('http://') || link.url.startsWith('https://')));
 }
 
+// Convertir archivo a Base64
+function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
 // Renderizar items
-function renderItems() {
+async function renderItems() {
     const container = document.getElementById('itemsContainer');
     if (!container) return;
     
-    const items = loadItems();
-    const priceRange = document.getElementById('priceRange');
-    const maxPrice = priceRange ? parseInt(priceRange.value) : 500000;
+    try {
+        const items = await loadItems();
+        const priceRange = document.getElementById('priceRange');
+        const maxPrice = priceRange ? parseInt(priceRange.value) : 500000;
 
-    // Filtrar por precio
-    const filteredItems = items.filter(item => item.price <= maxPrice);
+        // Filtrar por precio
+        const filteredItems = items.filter(item => item.price <= maxPrice);
 
-    if (filteredItems.length === 0) {
-        container.innerHTML = `
-            <div style="grid-column: 1/-1; text-align: center; padding: 2rem;">
-                <div class="empty-state">
-                    <i class="fas fa-heart"></i>
-                    <p>${items.length === 0 ? 'Tu lista está vacía. ¡Agrega un deseo!' : 'No hay deseos en este rango de precio'}</p>
+        if (filteredItems.length === 0) {
+            container.innerHTML = `
+                <div style="grid-column: 1/-1; text-align: center; padding: 2rem;">
+                    <div class="empty-state">
+                        <i class="fas fa-heart"></i>
+                        <p>${items.length === 0 ? 'Tu lista está vacía. ¡Agrega un deseo!' : 'No hay deseos en este rango de precio'}</p>
+                    </div>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = filteredItems.map((item) => `
+            <div class="item-card">
+                <div class="item-image">
+                    ${item.imageUrl ? `<img src="${item.imageUrl}" alt="${item.title}" onerror="this.src='https://via.placeholder.com/200/be185d/ffffff?text=Sin+imagen'">` : '🎁'}
+                </div>
+                <div class="item-title">${item.title}</div>
+                <div class="item-description">${item.description || 'Sin descripción'}</div>
+                <div class="item-price">$${item.price.toLocaleString('es-CL')}</div>
+                <div class="item-actions">
+                    <button class="more-info-btn" onclick="expandItem(${item.id})">
+                        <i class="fas fa-expand"></i>Más información
+                    </button>
+                    ${isAdmin ? `
+                        <button class="more-info-btn" style="background: #d946a6; flex: 0;" onclick="editItem(${item.id})">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="more-info-btn" style="background: #ec4899; flex: 0;" onclick="deleteItemById(${item.id})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    ` : ''}
                 </div>
             </div>
-        `;
-        return;
+        `).join('');
+    } catch (error) {
+        container.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 2rem; color: #be185d;">Error cargando deseos: ${error.message}</div>`;
     }
+}
 
-    container.innerHTML = filteredItems.map((item, index) => `
-        <div class="item-card">
-            <div class="item-image">
-                ${item.imageUrl ? `<img src="${item.imageUrl}" alt="${item.title}" onerror="this.src='https://via.placeholder.com/200/be185d/ffffff?text=Sin+imagen'">` : '🎁'}
-            </div>
-            <div class="item-title">${item.title}</div>
-            <div class="item-description">${item.description || 'Sin descripción'}</div>
-            <div class="item-price">$${item.price.toLocaleString('es-CL')}</div>
-            <div class="item-priority priority-${item.priority}">
-                ${item.priority === 'high' ? '⭐ Alta Prioridad' : item.priority === 'medium' ? '✨ Prioridad Media' : '💫 Baja Prioridad'}
-            </div>
-            <div class="item-actions">
-                <button class="more-info-btn" onclick="expandItem(${index})">
-                    <i class="fas fa-expand"></i>Más información
-                </button>
-                ${isAdmin ? `<button class="more-info-btn" style="background: #ec4899; flex: 0;" onclick="deleteItem(${index})">
-                    <i class="fas fa-trash"></i>
-                </button>` : ''}
-            </div>
-        </div>
-    `).join('');
+// Obtener item por ID
+async function getItemById(id) {
+    try {
+        const items = await supabaseRequest('GET', `wishlist?id=eq.${id}`);
+        return items.length > 0 ? items[0] : null;
+    } catch (error) {
+        console.error('Error obteniendo item:', error);
+        return null;
+    }
 }
 
 // Expandir item
-function expandItem(index) {
-    const items = loadItems();
-    const item = items[index];
+async function expandItem(id) {
+    const item = await getItemById(id);
+    if (!item) return;
 
     const modal = document.createElement('div');
     modal.className = 'expanded-modal';
@@ -123,7 +198,6 @@ function expandItem(index) {
 
     document.body.appendChild(modal);
 
-    // Cerrar al hacer clic fuera
     modal.addEventListener('click', function(e) {
         if (e.target === modal) {
             closeExpandedItem();
@@ -139,51 +213,168 @@ function closeExpandedItem() {
     }
 }
 
-// Eliminar item
-function deleteItem(index) {
-    if (confirm('¿Seguro que quieres eliminar este deseo?')) {
-        const items = loadItems();
-        items.splice(index, 1);
-        saveItems(items);
+// Editar item
+async function editItem(id) {
+    const item = await getItemById(id);
+    if (!item) return;
+
+    const modal = document.createElement('div');
+    modal.className = 'expanded-modal';
+    modal.id = 'editModal';
+    modal.innerHTML = `
+        <div class="expanded-content" style="max-width: 600px;">
+            <span class="close" onclick="closeEditModal()">&times;</span>
+            <h2 style="color: #be185d; margin-bottom: 1.5rem;">Editar deseo</h2>
+            <form id="editForm" onsubmit="saveEdit(event, ${id})">
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label>Nombre</label>
+                    <input type="text" id="editTitle" value="${item.title}" required style="width: 100%; padding: 0.8rem; border: 1px solid #fbcfe8; border-radius: 8px;">
+                </div>
+
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label>Precio ($)</label>
+                    <input type="number" id="editPrice" value="${item.price}" required style="width: 100%; padding: 0.8rem; border: 1px solid #fbcfe8; border-radius: 8px;">
+                </div>
+
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label>Descripción</label>
+                    <textarea id="editDescription" style="width: 100%; padding: 0.8rem; border: 1px solid #fbcfe8; border-radius: 8px; min-height: 80px;">${item.description || ''}</textarea>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label>Links a tiendas</label>
+                    <textarea id="editShopLinks" style="width: 100%; padding: 0.8rem; border: 1px solid #fbcfe8; border-radius: 8px; min-height: 80px;">${item.shopLinks.map(s => s.name + ' - ' + s.url).join('\n')}</textarea>
+                    <small style="color: #be185d; display: block; margin-top: 0.5rem;">Formato: Nombre - URL (uno por línea)</small>
+                </div>
+
+                <button type="submit" class="add-btn" style="width: 100%;">Guardar cambios</button>
+            </form>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            closeEditModal();
+        }
+    });
+}
+
+// Guardar cambios de edición
+async function saveEdit(event, id) {
+    event.preventDefault();
+    
+    try {
+        const updatedItem = {
+            title: document.getElementById('editTitle').value,
+            price: parseInt(document.getElementById('editPrice').value),
+            description: document.getElementById('editDescription').value,
+            shopLinks: parseShopLinks(document.getElementById('editShopLinks').value)
+        };
+
+        await updateItem(id, updatedItem);
+        closeEditModal();
         renderItems();
+        alert('✅ Cambios guardados');
+    } catch (error) {
+        alert('Error guardando cambios: ' + error.message);
+    }
+}
+
+// Cerrar modal de edición
+function closeEditModal() {
+    const modal = document.getElementById('editModal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+// Eliminar item
+async function deleteItemById(id) {
+    if (confirm('¿Seguro que quieres eliminar este deseo?')) {
+        try {
+            await deleteItem(id);
+            renderItems();
+        } catch (error) {
+            alert('Error eliminando deseo: ' + error.message);
+        }
     }
 }
 
 // ============ INICIALIZAR AL CARGAR ============
 document.addEventListener('DOMContentLoaded', function() {
     
+    // Botón para subir imagen
+    const uploadImageBtn = document.getElementById('uploadImageBtn');
+    const imageFile = document.getElementById('imageFile');
+    
+    if (uploadImageBtn && imageFile) {
+        uploadImageBtn.addEventListener('click', function() {
+            imageFile.click();
+        });
+
+        imageFile.addEventListener('change', async function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                try {
+                    const base64 = await fileToBase64(file);
+                    document.getElementById('imageUrl').value = base64;
+                    uploadImageBtn.textContent = '✅ Imagen cargada';
+                    uploadImageBtn.style.background = '#10b981';
+                    uploadImageBtn.style.color = 'white';
+                    setTimeout(() => {
+                        uploadImageBtn.textContent = 'Subir';
+                        uploadImageBtn.style.background = '#fbcfe8';
+                        uploadImageBtn.style.color = '#be185d';
+                    }, 2000);
+                } catch (error) {
+                    alert('Error al cargar la imagen: ' + error);
+                }
+            }
+        });
+    }
+    
     // Agregar nuevo item
     const form = document.getElementById('addItemForm');
     if (form) {
-        form.addEventListener('submit', function(e) {
+        form.addEventListener('submit', async function(e) {
             e.preventDefault();
 
-            const shopLinksText = document.getElementById('shopLinks').value;
-            const shopLinks = parseShopLinks(shopLinksText);
+            const imageUrl = document.getElementById('imageUrl').value;
+            if (!imageUrl) {
+                alert('Por favor agrega una imagen');
+                return;
+            }
 
-            const newItem = {
-                title: document.getElementById('title').value,
-                description: document.getElementById('description').value,
-                price: parseInt(document.getElementById('price').value) || 0,
-                priority: document.getElementById('priority').value,
-                imageUrl: document.getElementById('imageUrl').value,
-                shopLinks: shopLinks
-            };
+            try {
+                const shopLinksText = document.getElementById('shopLinks').value;
+                const shopLinks = parseShopLinks(shopLinksText);
 
-            const items = loadItems();
-            items.push(newItem);
-            saveItems(items);
+                const newItem = {
+                    title: document.getElementById('title').value,
+                    description: document.getElementById('description').value,
+                    price: parseInt(document.getElementById('price').value) || 0,
+                    imageUrl: imageUrl,
+                    shopLinks: shopLinks
+                };
 
-            // Limpiar formulario
-            form.reset();
+                await saveNewItem(newItem);
 
-            // Re-renderizar
-            renderItems();
+                // Limpiar formulario
+                form.reset();
+                document.getElementById('imageUrl').value = '';
 
-            // Scroll suave hacia los items
-            document.getElementById('itemsContainer').scrollIntoView({ behavior: 'smooth' });
-            
-            alert('✅ ¡Deseo agregado exitosamente!');
+                // Re-renderizar
+                renderItems();
+
+                // Scroll suave hacia los items
+                document.getElementById('itemsContainer').scrollIntoView({ behavior: 'smooth' });
+                
+                alert('✅ ¡Deseo agregado exitosamente!');
+            } catch (error) {
+                alert('Error agregando deseo: ' + error.message);
+            }
         });
     }
 
@@ -266,4 +457,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Renderizar items al cargar
     renderItems();
+
+    // Actualizar items cada 3 segundos (para sincronización en tiempo real)
+    setInterval(renderItems, 3000);
 });
