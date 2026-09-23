@@ -137,7 +137,7 @@ async function renderItems() {
         container.innerHTML = filteredItems.map((item) => `
             <div class="item-card">
                 <div class="item-image">
-                    ${item.imageUrl ? `<img src="${item.imageUrl}" alt="${item.title}" onerror="this.src='https://via.placeholder.com/200/be185d/ffffff?text=Sin+imagen'">` : '🎁'}
+                    ${item.imageurl ? `<img src="${item.imageurl}" alt="${item.title}" onerror="this.src='https://via.placeholder.com/200/be185d/ffffff?text=Sin+imagen'">` : '🎁'}
                 </div>
                 <div class="item-title">${item.title}</div>
                 <div class="item-description">${item.description || 'Sin descripción'}</div>
@@ -185,15 +185,15 @@ async function expandItem(id) {
     modal.innerHTML = `
         <div class="expanded-content">
             <span class="close" onclick="closeExpandedItem()">&times;</span>
-            <img src="${item.imageUrl}" alt="${item.title}" class="expanded-image" onerror="this.src='https://via.placeholder.com/400/be185d/ffffff?text=Sin+imagen'">
+            <img src="${item.imageurl}" alt="${item.title}" class="expanded-image" onerror="this.src='https://via.placeholder.com/400/be185d/ffffff?text=Sin+imagen'">
             <h2 class="expanded-title">${item.title}</h2>
             <div class="expanded-price">$${item.price.toLocaleString('es-CL')}</div>
             <div class="expanded-description">${item.description || 'Sin descripción adicional'}</div>
             
-            ${item.shopLinks && item.shopLinks.length > 0 ? `
+            ${item.shoplinks && item.shoplinks.length > 0 ? `
                 <div class="shop-links-section">
                     <h4>Dónde comprar:</h4>
-                    ${item.shopLinks.map(link => `
+                    ${item.shoplinks.map(link => `
                         <div class="shop-link-item">
                             <a href="${link.url}" target="_blank" rel="noopener noreferrer">
                                 ${link.name}
@@ -253,7 +253,7 @@ async function editItem(id) {
 
                 <div class="form-group" style="margin-bottom: 1rem;">
                     <label>Links a tiendas</label>
-                    <textarea id="editShopLinks" style="width: 100%; padding: 0.8rem; border: 1px solid #fbcfe8; border-radius: 8px; min-height: 80px;">${item.shopLinks.map(s => s.name + ' - ' + s.url).join('\n')}</textarea>
+                    <textarea id="editShopLinks" style="width: 100%; padding: 0.8rem; border: 1px solid #fbcfe8; border-radius: 8px; min-height: 80px;">${item.shoplinks.map(s => s.name + ' - ' + s.url).join('\n')}</textarea>
                     <small style="color: #be185d; display: block; margin-top: 0.5rem;">Formato: Nombre - URL (uno por línea)</small>
                 </div>
 
@@ -280,7 +280,7 @@ async function saveEdit(event, id) {
             title: document.getElementById('editTitle').value,
             price: parseInt(document.getElementById('editPrice').value),
             description: document.getElementById('editDescription').value,
-            shopLinks: parseShopLinks(document.getElementById('editShopLinks').value)
+            shoplinks: parseShopLinks(document.getElementById('editShopLinks').value)
         };
 
         await updateItem(id, updatedItem);
@@ -365,8 +365,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     title: document.getElementById('title').value,
                     description: document.getElementById('description').value,
                     price: parseInt(document.getElementById('price').value) || 0,
-                    imageUrl: imageUrl,
-                    shopLinks: shopLinks
+                    imageurl: imageUrl,
+                    shoplinks: shopLinks
                 };
 
                 await saveNewItem(newItem);

@@ -198,6 +198,7 @@ body {
     font-size: 0.85rem;
     font-weight: 600;
     margin-bottom: 1rem;
+    display: none;
 }
 
 .priority-high {
