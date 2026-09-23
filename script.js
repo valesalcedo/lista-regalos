@@ -15,7 +15,6 @@ const defaultItems = [
 
 // Variables globales
 let isAdmin = false;
-let currentMaxPrice = 500000;
 
 // Cargar items del localStorage
 function loadItems() {
@@ -34,7 +33,7 @@ function parseShopLinks(text) {
     
     return text.split('\n')
         .map(line => line.trim())
-        .filter(line => line.includes('-'))
+        .filter(line => line.includes('-') && line.length > 0)
         .map(line => {
             const [name, ...urlParts] = line.split('-').map(s => s.trim());
             const url = urlParts.join('-').trim();
@@ -46,8 +45,11 @@ function parseShopLinks(text) {
 // Renderizar items
 function renderItems() {
     const container = document.getElementById('itemsContainer');
+    if (!container) return;
+    
     const items = loadItems();
-    const maxPrice = parseInt(document.getElementById('priceRange')?.value || 500000);
+    const priceRange = document.getElementById('priceRange');
+    const maxPrice = priceRange ? parseInt(priceRange.value) : 500000;
 
     // Filtrar por precio
     const filteredItems = items.filter(item => item.price <= maxPrice);
@@ -137,36 +139,6 @@ function closeExpandedItem() {
     }
 }
 
-// Agregar nuevo item
-document.getElementById('addItemForm')?.addEventListener('submit', function(e) {
-    e.preventDefault();
-
-    const shopLinksText = document.getElementById('shopLinks').value;
-    const shopLinks = parseShopLinks(shopLinksText);
-
-    const newItem = {
-        title: document.getElementById('title').value,
-        description: document.getElementById('description').value,
-        price: parseInt(document.getElementById('price').value) || 0,
-        priority: document.getElementById('priority').value,
-        imageUrl: document.getElementById('imageUrl').value,
-        shopLinks: shopLinks
-    };
-
-    const items = loadItems();
-    items.push(newItem);
-    saveItems(items);
-
-    // Limpiar formulario
-    this.reset();
-
-    // Re-renderizar
-    renderItems();
-
-    // Scroll suave hacia los items
-    document.getElementById('itemsContainer').scrollIntoView({ behavior: 'smooth' });
-});
-
 // Eliminar item
 function deleteItem(index) {
     if (confirm('¿Seguro que quieres eliminar este deseo?')) {
@@ -177,78 +149,121 @@ function deleteItem(index) {
     }
 }
 
-// ============ FILTRO DE PRECIO ============
-const priceRange = document.getElementById('priceRange');
-const priceValue = document.getElementById('priceValue');
-const resetFilter = document.getElementById('resetFilter');
+// ============ INICIALIZAR AL CARGAR ============
+document.addEventListener('DOMContentLoaded', function() {
+    
+    // Agregar nuevo item
+    const form = document.getElementById('addItemForm');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
 
-if (priceRange) {
-    priceRange.addEventListener('input', function() {
-        priceValue.textContent = parseInt(this.value).toLocaleString('es-CL');
-        renderItems();
-    });
-}
+            const shopLinksText = document.getElementById('shopLinks').value;
+            const shopLinks = parseShopLinks(shopLinksText);
 
-if (resetFilter) {
-    resetFilter.addEventListener('click', function() {
-        priceRange.value = 500000;
-        priceValue.textContent = '500.000';
-        renderItems();
-    });
-}
+            const newItem = {
+                title: document.getElementById('title').value,
+                description: document.getElementById('description').value,
+                price: parseInt(document.getElementById('price').value) || 0,
+                priority: document.getElementById('priority').value,
+                imageUrl: document.getElementById('imageUrl').value,
+                shopLinks: shopLinks
+            };
 
-// ============ FUNCIONALIDAD DE ADMIN ============
+            const items = loadItems();
+            items.push(newItem);
+            saveItems(items);
 
-// Elementos del modal
-const adminBtn = document.getElementById('adminBtn');
-const passwordModal = document.getElementById('passwordModal');
-const passwordForm = document.getElementById('passwordForm');
-const closeBtn = document.querySelector('.close');
-const addItemSection = document.getElementById('addItemSection');
+            // Limpiar formulario
+            form.reset();
 
-if (adminBtn) {
-    // Abrir modal
-    adminBtn.addEventListener('click', function() {
-        passwordModal.style.display = 'flex';
-    });
+            // Re-renderizar
+            renderItems();
 
-    // Cerrar modal
-    if (closeBtn) {
-        closeBtn.addEventListener('click', function() {
-            passwordModal.style.display = 'none';
-            document.getElementById('adminPassword').value = '';
+            // Scroll suave hacia los items
+            document.getElementById('itemsContainer').scrollIntoView({ behavior: 'smooth' });
+            
+            alert('✅ ¡Deseo agregado exitosamente!');
         });
     }
 
-    // Cerrar modal al hacer clic fuera
-    window.addEventListener('click', function(e) {
-        if (e.target === passwordModal) {
-            passwordModal.style.display = 'none';
-            document.getElementById('adminPassword').value = '';
-        }
-    });
+    // ============ FILTRO DE PRECIO ============
+    const priceRange = document.getElementById('priceRange');
+    const priceValue = document.getElementById('priceValue');
+    const resetFilter = document.getElementById('resetFilter');
 
-    // Validar contraseña
-    if (passwordForm) {
-        passwordForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const password = document.getElementById('adminPassword').value;
-            
-            if (password === ADMIN_PASSWORD) {
-                isAdmin = true;
-                addItemSection.style.display = 'block';
-                passwordModal.style.display = 'none';
-                document.getElementById('adminPassword').value = '';
-                adminBtn.textContent = '🔓 Admin (Activo)';
-                adminBtn.style.background = 'linear-gradient(135deg, #10b981 0%, #34d399 100%)';
-                renderItems();
-            } else {
-                alert('❌ Contraseña incorrecta');
-                document.getElementById('adminPassword').value = '';
+    if (priceRange) {
+        priceRange.addEventListener('input', function() {
+            priceValue.textContent = parseInt(this.value).toLocaleString('es-CL');
+            renderItems();
+        });
+    }
+
+    if (resetFilter) {
+        resetFilter.addEventListener('click', function() {
+            priceRange.value = 500000;
+            priceValue.textContent = '500.000';
+            renderItems();
+        });
+    }
+
+    // ============ FUNCIONALIDAD DE ADMIN ============
+    const adminBtn = document.getElementById('adminBtn');
+    const passwordModal = document.getElementById('passwordModal');
+    const passwordForm = document.getElementById('passwordForm');
+    const closeBtn = document.querySelector('.close');
+    const addItemSection = document.getElementById('addItemSection');
+
+    if (adminBtn) {
+        // Abrir modal
+        adminBtn.addEventListener('click', function() {
+            if (passwordModal) {
+                passwordModal.style.display = 'flex';
             }
         });
-    }
-}
 
-// Renderizar al cargar
-renderItems();
+        // Cerrar modal
+        if (closeBtn) {
+            closeBtn.addEventListener('click', function() {
+                if (passwordModal) {
+                    passwordModal.style.display = 'none';
+                }
+                const field = document.getElementById('adminPassword');
+                if (field) field.value = '';
+            });
+        }
+
+        // Cerrar modal al hacer clic fuera
+        window.addEventListener('click', function(e) {
+            if (e.target === passwordModal) {
+                passwordModal.style.display = 'none';
+                const field = document.getElementById('adminPassword');
+                if (field) field.value = '';
+            }
+        });
+
+        // Validar contraseña
+        if (passwordForm) {
+            passwordForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const password = document.getElementById('adminPassword').value;
+                
+                if (password === ADMIN_PASSWORD) {
+                    isAdmin = true;
+                    if (addItemSection) addItemSection.style.display = 'block';
+                    if (passwordModal) passwordModal.style.display = 'none';
+                    document.getElementById('adminPassword').value = '';
+                    adminBtn.textContent = '🔓 Admin (Activo)';
+                    adminBtn.style.background = 'linear-gradient(135deg, #10b981 0%, #34d399 100%)';
+                    renderItems();
+                } else {
+                    alert('❌ Contraseña incorrecta');
+                    document.getElementById('adminPassword').value = '';
+                }
+            });
+        }
+    }
+
+    // Renderizar items al cargar
+    renderItems();
+});

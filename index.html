@@ -12,9 +12,9 @@
         <div class="header">
             <h1>🎀 Mi Lista de Deseos 🎀</h1>
             <div class="profile-pic-container">
-                   <img id="profilePic" src="profile.JPG" alt="Tu foto">
+                <img id="profilePic" src="https://via.placeholder.com/150/be185d/ffffff?text=Tu+Foto" alt="Tu foto">
             </div>
-            <p>¿No sabes qué regalarme? Roba una idea !!</p>
+            <p>Comparte conmigo qué te gustaría recibir</p>
             <button id="adminBtn" class="admin-btn">🔑 Admin</button>
         </div>
 
@@ -52,6 +52,14 @@
                         <label for="imageUrl">Foto del deseo (URL)*</label>
                         <input type="url" id="imageUrl" placeholder="https://ejemplo.com/imagen.jpg" required>
                     </div>
+                    <div class="form-group">
+                        <label for="priority">Prioridad</label>
+                        <select id="priority" required>
+                            <option value="high">Alta</option>
+                            <option value="medium" selected>Media</option>
+                            <option value="low">Baja</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -74,8 +82,8 @@
             <h3>Filtrar por precio</h3>
             <div class="price-filter">
                 <label>
-                    <input type="range" id="priceRange" min="0" max="500" value="500" step="10">
-                    <span>Hasta $<span id="priceValue">100000</span></span>
+                    <input type="range" id="priceRange" min="0" max="500000" value="500000" step="10000">
+                    <span>Hasta $<span id="priceValue">500.000</span></span>
                 </label>
                 <button id="resetFilter" class="reset-btn">Limpiar filtro</button>
             </div>
