@@ -10,12 +10,13 @@ let isAdmin = false;
 
 // Función para hacer requests a Supabase
 async function supabaseRequest(method, endpoint, body = null) {
+    const url = `${SUPABASE_URL}/rest/v1/${endpoint}`;
+    
     const options = {
         method: method,
         headers: {
             'Content-Type': 'application/json',
             'apikey': SUPABASE_KEY,
-            'Authorization': `Bearer ${SUPABASE_KEY}`
         }
     };
 
@@ -23,20 +24,28 @@ async function supabaseRequest(method, endpoint, body = null) {
         options.body = JSON.stringify(body);
     }
 
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/${endpoint}`, options);
-    
-    if (!response.ok) {
-        throw new Error(`Error: ${response.statusText}`);
-    }
+    try {
+        const response = await fetch(url, options);
+        
+        if (!response.ok) {
+            const errorData = await response.text();
+            console.error('Supabase Error:', response.status, errorData);
+            throw new Error(`Status ${response.status}: ${errorData}`);
+        }
 
-    return await response.json();
+        const text = await response.text();
+        return text ? JSON.parse(text) : [];
+    } catch (error) {
+        console.error('Request error:', error);
+        throw error;
+    }
 }
 
 // Cargar items desde Supabase
 async function loadItems() {
     try {
         const items = await supabaseRequest('GET', 'wishlist?order=created_at.desc');
-        return items || [];
+        return Array.isArray(items) ? items : [];
     } catch (error) {
         console.error('Error cargando items:', error);
         return [];
@@ -149,7 +158,8 @@ async function renderItems() {
             </div>
         `).join('');
     } catch (error) {
-        container.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 2rem; color: #be185d;">Error cargando deseos: ${error.message}</div>`;
+        console.error('Error renderizando items:', error);
+        container.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 2rem; color: #be185d;">Error cargando deseos</div>`;
     }
 }
 
@@ -157,7 +167,7 @@ async function renderItems() {
 async function getItemById(id) {
     try {
         const items = await supabaseRequest('GET', `wishlist?id=eq.${id}`);
-        return items.length > 0 ? items[0] : null;
+        return items && items.length > 0 ? items[0] : null;
     } catch (error) {
         console.error('Error obteniendo item:', error);
         return null;
