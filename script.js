@@ -329,7 +329,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (file) {
                 try {
                     const base64 = await fileToBase64(file);
-                    document.getElementById('imageUrl').value = base64;
+                    document.getElementById('imageurl').value = base64;
                     uploadImageBtn.textContent = '✅ Imagen cargada';
                     uploadImageBtn.style.background = '#10b981';
                     uploadImageBtn.style.color = 'white';
@@ -351,8 +351,8 @@ document.addEventListener('DOMContentLoaded', function() {
         form.addEventListener('submit', async function(e) {
             e.preventDefault();
 
-            const imageUrl = document.getElementById('imageUrl').value;
-            if (!imageUrl) {
+            const imageurl = document.getElementById('imageurl').value;
+            if (!imageurl) {
                 alert('Por favor agrega una imagen');
                 return;
             }
@@ -365,7 +365,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     title: document.getElementById('title').value,
                     description: document.getElementById('description').value,
                     price: parseInt(document.getElementById('price').value) || 0,
-                    imageurl: imageUrl,
+                    imageurl: imageurl,
                     shoplinks: shopLinks
                 };
 
@@ -373,7 +373,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 // Limpiar formulario
                 form.reset();
-                document.getElementById('imageUrl').value = '';
+                document.getElementById('imageurl').value = '';
 
                 // Re-renderizar
                 renderItems();
