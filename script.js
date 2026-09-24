@@ -602,14 +602,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (password === ADMIN_PASSWORD) {
                     isAdmin = true;
                     if (addItemSection) addItemSection.style.display = 'block';
-                    if (filterSection) filterSection.style.display = 'block';
                     if (passwordModal) passwordModal.style.display = 'none';
                     document.getElementById('adminPassword').value = '';
                     adminBtn.textContent = '🔓 Admin (Activo)';
                     adminBtn.style.background = 'linear-gradient(135deg, #10b981 0%, #34d399 100%)';
-                    
-                    // Hacer el Pinterest editable si es admin
-                    makePinterestEditable();
                     
                     renderItems();
                 } else {
@@ -620,42 +616,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Pinterest link editable para admin
-    function makePinterestEditable() {
-        const pinterestLink = document.getElementById('pinterestLink');
-        if (!pinterestLink) return;
-        
-        // Agregar icono de editar
-        const editIcon = document.createElement('span');
-        editIcon.innerHTML = ' <i class="fas fa-edit" style="font-size: 0.8rem; opacity: 0.7;"></i>';
-        pinterestLink.appendChild(editIcon);
-        
-        // Hacer clickeable para editar
-        pinterestLink.style.cursor = 'pointer';
-        pinterestLink.addEventListener('click', function(e) {
-            if (isAdmin) {
-                e.preventDefault();
-                const newUrl = prompt('Ingresa tu URL de Pinterest:', this.href === '#' ? 'https://pinterest.com/tu-usuario/tablero' : this.href);
-                if (newUrl && (newUrl.startsWith('http://') || newUrl.startsWith('https://'))) {
-                    this.href = newUrl;
-                    localStorage.setItem('pinterestUrl', newUrl);
-                }
-            }
-        });
-        
-        // Cargar URL guardada si existe
-        const savedUrl = localStorage.getItem('pinterestUrl');
-        if (savedUrl) {
-            pinterestLink.href = savedUrl;
-        }
-    }
-    
-    // Cargar Pinterest URL guardada
-    const pinterestLink = document.getElementById('pinterestLink');
-    const savedUrl = localStorage.getItem('pinterestUrl');
-    if (pinterestLink && savedUrl) {
-        pinterestLink.href = savedUrl;
-    }
+
 
     // Renderizar items al cargar
     renderItems();
