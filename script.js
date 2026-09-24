@@ -609,7 +609,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     adminBtn.style.background = 'linear-gradient(135deg, #10b981 0%, #34d399 100%)';
                     
                     // Hacer el Pinterest editable si es admin
-                    makeP interestEditable();
+                    makePinterestEditable();
                     
                     renderItems();
                 } else {
