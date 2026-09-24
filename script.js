@@ -84,21 +84,6 @@ async function deleteItem(id) {
     }
 }
 
-// Parsear links de tiendas
-function parseShopLinks(text) {
-    if (!text || text.trim() === '') return [];
-    
-    return text.split('\n')
-        .map(line => line.trim())
-        .filter(line => line.includes('-') && line.length > 0)
-        .map(line => {
-            const [name, ...urlParts] = line.split('-').map(s => s.trim());
-            const url = urlParts.join('-').trim();
-            return { name, url };
-        })
-        .filter(link => link.url && (link.url.startsWith('http://') || link.url.startsWith('https://')));
-}
-
 // Convertir archivo a Base64
 function fileToBase64(file) {
     return new Promise((resolve, reject) => {
@@ -109,6 +94,43 @@ function fileToBase64(file) {
     });
 }
 
+// Parsear links de tiendas desde los inputs
+function getShopLinksFromForm() {
+    const container = document.getElementById('shopLinksContainer');
+    const links = [];
+    
+    container.querySelectorAll('.shop-link-input').forEach(linkInput => {
+        const name = linkInput.querySelector('.shop-name').value.trim();
+        const url = linkInput.querySelector('.shop-url').value.trim();
+        
+        if (name && url && (url.startsWith('http://') || url.startsWith('https://'))) {
+            links.push({ name, url });
+        }
+    });
+    
+    return links;
+}
+
+// Ordenar items
+function sortItems(items, sortType) {
+    const sorted = [...items];
+    
+    switch(sortType) {
+        case 'newest':
+            return sorted.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        case 'oldest':
+            return sorted.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+        case 'priceLow':
+            return sorted.sort((a, b) => (a.pricemin || 0) - (b.pricemin || 0));
+        case 'priceHigh':
+            return sorted.sort((a, b) => (b.pricemax || 0) - (a.pricemax || 0));
+        case 'random':
+            return sorted.sort(() => Math.random() - 0.5);
+        default:
+            return sorted;
+    }
+}
+
 // Renderizar items
 async function renderItems() {
     const container = document.getElementById('itemsContainer');
@@ -116,13 +138,21 @@ async function renderItems() {
     
     try {
         const items = await loadItems();
-        const priceRange = document.getElementById('priceRange');
-        const maxPrice = priceRange ? parseInt(priceRange.value) : 500000;
+        const priceMinRange = parseInt(document.getElementById('priceMinRange')?.value || 0);
+        const priceMaxRange = parseInt(document.getElementById('priceMaxRange')?.value || 1000000);
+        const sortType = document.getElementById('sortSelect')?.value || 'newest';
 
-        // Filtrar por precio
-        const filteredItems = items.filter(item => item.price <= maxPrice);
+        // Filtrar por rango de precio
+        const filteredItems = items.filter(item => {
+            const itemMax = item.pricemax || 0;
+            const itemMin = item.pricemin || 0;
+            return itemMax >= priceMinRange && itemMin <= priceMaxRange;
+        });
 
-        if (filteredItems.length === 0) {
+        // Ordenar
+        const sortedItems = sortItems(filteredItems, sortType);
+
+        if (sortedItems.length === 0) {
             container.innerHTML = `
                 <div style="grid-column: 1/-1; text-align: center; padding: 2rem;">
                     <div class="empty-state">
@@ -134,14 +164,14 @@ async function renderItems() {
             return;
         }
 
-        container.innerHTML = filteredItems.map((item) => `
+        container.innerHTML = sortedItems.map((item) => `
             <div class="item-card">
                 <div class="item-image">
                     ${item.imageurl ? `<img src="${item.imageurl}" alt="${item.title}" onerror="this.src='https://via.placeholder.com/200/be185d/ffffff?text=Sin+imagen'">` : '🎁'}
                 </div>
                 <div class="item-title">${item.title}</div>
                 <div class="item-description">${item.description || 'Sin descripción'}</div>
-                <div class="item-price">$${item.price.toLocaleString('es-CL')}</div>
+                <div class="item-price">$${(item.pricemin || 0).toLocaleString('es-CL')} - $${(item.pricemax || 0).toLocaleString('es-CL')}</div>
                 <div class="item-actions">
                     <button class="more-info-btn" onclick="expandItem(${item.id})">
                         <i class="fas fa-expand"></i>Más información
@@ -187,7 +217,7 @@ async function expandItem(id) {
             <span class="close" onclick="closeExpandedItem()">&times;</span>
             <img src="${item.imageurl}" alt="${item.title}" class="expanded-image" onerror="this.src='https://via.placeholder.com/400/be185d/ffffff?text=Sin+imagen'">
             <h2 class="expanded-title">${item.title}</h2>
-            <div class="expanded-price">$${item.price.toLocaleString('es-CL')}</div>
+            <div class="expanded-price">$${(item.pricemin || 0).toLocaleString('es-CL')} - $${(item.pricemax || 0).toLocaleString('es-CL')}</div>
             <div class="expanded-description">${item.description || 'Sin descripción adicional'}</div>
             
             ${item.shoplinks && item.shoplinks.length > 0 ? `
@@ -242,8 +272,12 @@ async function editItem(id) {
                 </div>
 
                 <div class="form-group" style="margin-bottom: 1rem;">
-                    <label>Precio ($)</label>
-                    <input type="number" id="editPrice" value="${item.price}" required style="width: 100%; padding: 0.8rem; border: 1px solid #fbcfe8; border-radius: 8px;">
+                    <label>Rango de precio ($)</label>
+                    <div style="display: flex; gap: 1rem;">
+                        <input type="number" id="editPriceMin" value="${item.pricemin || 0}" required style="flex: 1; padding: 0.8rem; border: 1px solid #fbcfe8; border-radius: 8px;">
+                        <span style="align-self: center; color: #be185d;">-</span>
+                        <input type="number" id="editPriceMax" value="${item.pricemax || 0}" required style="flex: 1; padding: 0.8rem; border: 1px solid #fbcfe8; border-radius: 8px;">
+                    </div>
                 </div>
 
                 <div class="form-group" style="margin-bottom: 1rem;">
@@ -253,8 +287,20 @@ async function editItem(id) {
 
                 <div class="form-group" style="margin-bottom: 1rem;">
                     <label>Links a tiendas</label>
-                    <textarea id="editShopLinks" style="width: 100%; padding: 0.8rem; border: 1px solid #fbcfe8; border-radius: 8px; min-height: 80px;">${item.shoplinks.map(s => s.name + ' - ' + s.url).join('\n')}</textarea>
-                    <small style="color: #be185d; display: block; margin-top: 0.5rem;">Formato: Nombre - URL (uno por línea)</small>
+                    <div id="editShopLinksContainer">
+                        ${item.shoplinks.map(link => `
+                            <div class="shop-link-input" style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                <input type="text" placeholder="Nombre" value="${link.name}" class="shop-name" style="flex: 1; padding: 0.6rem; border: 1px solid #fbcfe8; border-radius: 6px;">
+                                <input type="url" placeholder="URL" value="${link.url}" class="shop-url" style="flex: 1; padding: 0.6rem; border: 1px solid #fbcfe8; border-radius: 6px;">
+                                <button type="button" class="remove-link-btn" onclick="removeEditShopLink(this)" style="padding: 0.6rem 0.8rem; background: #ec4899; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <button type="button" onclick="addEditShopLink()" style="padding: 0.6rem 1rem; background: #fbcfe8; color: #be185d; border: 2px solid #be185d; border-radius: 6px; cursor: pointer; font-weight: 600; margin-top: 0.5rem;">
+                        <i class="fas fa-plus"></i> Agregar link
+                    </button>
                 </div>
 
                 <button type="submit" class="add-btn" style="width: 100%;">Guardar cambios</button>
@@ -276,11 +322,24 @@ async function saveEdit(event, id) {
     event.preventDefault();
     
     try {
+        const editShopLinksContainer = document.getElementById('editShopLinksContainer');
+        const shoplinks = [];
+        
+        editShopLinksContainer.querySelectorAll('.shop-link-input').forEach(linkInput => {
+            const name = linkInput.querySelector('.shop-name').value.trim();
+            const url = linkInput.querySelector('.shop-url').value.trim();
+            
+            if (name && url) {
+                shoplinks.push({ name, url });
+            }
+        });
+
         const updatedItem = {
             title: document.getElementById('editTitle').value,
-            price: parseInt(document.getElementById('editPrice').value),
+            pricemin: parseInt(document.getElementById('editPriceMin').value),
+            pricemax: parseInt(document.getElementById('editPriceMax').value),
             description: document.getElementById('editDescription').value,
-            shoplinks: parseShopLinks(document.getElementById('editShopLinks').value)
+            shoplinks: shoplinks
         };
 
         await updateItem(id, updatedItem);
@@ -290,6 +349,25 @@ async function saveEdit(event, id) {
     } catch (error) {
         alert('Error guardando cambios: ' + error.message);
     }
+}
+
+function addEditShopLink() {
+    const container = document.getElementById('editShopLinksContainer');
+    const linkInput = document.createElement('div');
+    linkInput.className = 'shop-link-input';
+    linkInput.style.cssText = 'display: flex; gap: 0.5rem; margin-bottom: 0.5rem;';
+    linkInput.innerHTML = `
+        <input type="text" placeholder="Nombre" class="shop-name" style="flex: 1; padding: 0.6rem; border: 1px solid #fbcfe8; border-radius: 6px;">
+        <input type="url" placeholder="URL" class="shop-url" style="flex: 1; padding: 0.6rem; border: 1px solid #fbcfe8; border-radius: 6px;">
+        <button type="button" class="remove-link-btn" onclick="removeEditShopLink(this)" style="padding: 0.6rem 0.8rem; background: #ec4899; color: white; border: none; border-radius: 6px; cursor: pointer;">
+            <i class="fas fa-trash"></i>
+        </button>
+    `;
+    container.appendChild(linkInput);
+}
+
+function removeEditShopLink(btn) {
+    btn.parentElement.remove();
 }
 
 // Cerrar modal de edición
@@ -312,9 +390,53 @@ async function deleteItemById(id) {
     }
 }
 
+// Agregar más campos de link en el formulario
+function addMoreShopLink() {
+    const container = document.getElementById('shopLinksContainer');
+    const linkInput = document.createElement('div');
+    linkInput.className = 'shop-link-input';
+    linkInput.innerHTML = `
+        <input type="text" placeholder="Nombre de la tienda" class="shop-name">
+        <input type="url" placeholder="URL del producto" class="shop-url">
+        <button type="button" class="remove-link-btn" onclick="removeShopLink(this)">
+            <i class="fas fa-trash"></i>
+        </button>
+    `;
+    container.appendChild(linkInput);
+    
+    // Mostrar botón de eliminar en la primera si hay más de una
+    updateRemoveButtons();
+}
+
+function removeShopLink(btn) {
+    btn.parentElement.remove();
+    updateRemoveButtons();
+}
+
+function updateRemoveButtons() {
+    const inputs = document.querySelectorAll('.shop-link-input');
+    inputs.forEach((input, index) => {
+        const removeBtn = input.querySelector('.remove-link-btn');
+        if (inputs.length > 1) {
+            removeBtn.style.display = 'block';
+        } else {
+            removeBtn.style.display = 'none';
+        }
+    });
+}
+
 // ============ INICIALIZAR AL CARGAR ============
 document.addEventListener('DOMContentLoaded', function() {
     
+    // Botón para agregar más links
+    const addMoreLinksBtn = document.getElementById('addMoreLinksBtn');
+    if (addMoreLinksBtn) {
+        addMoreLinksBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            addMoreShopLink();
+        });
+    }
+
     // Botón para subir imagen
     const uploadImageBtn = document.getElementById('uploadImageBtn');
     const imageFile = document.getElementById('imageFile');
@@ -358,15 +480,15 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             try {
-                const shopLinksText = document.getElementById('shopLinks').value;
-                const shopLinks = parseShopLinks(shopLinksText);
+                const shoplinks = getShopLinksFromForm();
 
                 const newItem = {
                     title: document.getElementById('title').value,
                     description: document.getElementById('description').value,
-                    price: parseInt(document.getElementById('price').value) || 0,
+                    pricemin: parseInt(document.getElementById('priceMin').value) || 0,
+                    pricemax: parseInt(document.getElementById('priceMax').value) || 0,
                     imageurl: imageurl,
-                    shoplinks: shopLinks
+                    shoplinks: shoplinks
                 };
 
                 await saveNewItem(newItem);
@@ -374,6 +496,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Limpiar formulario
                 form.reset();
                 document.getElementById('imageurl').value = '';
+                document.getElementById('shopLinksContainer').innerHTML = `
+                    <div class="shop-link-input">
+                        <input type="text" placeholder="Nombre de la tienda" class="shop-name">
+                        <input type="url" placeholder="URL del producto" class="shop-url">
+                        <button type="button" class="remove-link-btn" onclick="removeShopLink(this)" style="display: none;">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                `;
 
                 // Re-renderizar
                 renderItems();
@@ -388,22 +519,39 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // ============ FILTRO DE PRECIO ============
-    const priceRange = document.getElementById('priceRange');
-    const priceValue = document.getElementById('priceValue');
+    // ============ FILTROS Y ORDEN ============
+    const priceMinRange = document.getElementById('priceMinRange');
+    const priceMaxRange = document.getElementById('priceMaxRange');
+    const priceMinValue = document.getElementById('priceMinValue');
+    const priceMaxValue = document.getElementById('priceMaxValue');
+    const sortSelect = document.getElementById('sortSelect');
     const resetFilter = document.getElementById('resetFilter');
 
-    if (priceRange) {
-        priceRange.addEventListener('input', function() {
-            priceValue.textContent = parseInt(this.value).toLocaleString('es-CL');
+    if (priceMinRange) {
+        priceMinRange.addEventListener('input', function() {
+            priceMinValue.textContent = parseInt(this.value).toLocaleString('es-CL');
             renderItems();
         });
     }
 
+    if (priceMaxRange) {
+        priceMaxRange.addEventListener('input', function() {
+            priceMaxValue.textContent = parseInt(this.value).toLocaleString('es-CL');
+            renderItems();
+        });
+    }
+
+    if (sortSelect) {
+        sortSelect.addEventListener('change', renderItems);
+    }
+
     if (resetFilter) {
         resetFilter.addEventListener('click', function() {
-            priceRange.value = 500000;
-            priceValue.textContent = '500.000';
+            if (priceMinRange) priceMinRange.value = 0;
+            if (priceMaxRange) priceMaxRange.value = 1000000;
+            if (priceMinValue) priceMinValue.textContent = '0';
+            if (priceMaxValue) priceMaxValue.textContent = '1.000.000';
+            if (sortSelect) sortSelect.value = 'newest';
             renderItems();
         });
     }
@@ -414,6 +562,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const passwordForm = document.getElementById('passwordForm');
     const closeBtn = document.querySelector('.close');
     const addItemSection = document.getElementById('addItemSection');
+    const filterSection = document.getElementById('filterSection');
+    const pinterestSection = document.getElementById('pinterestSection');
 
     if (adminBtn) {
         // Abrir modal
@@ -452,10 +602,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (password === ADMIN_PASSWORD) {
                     isAdmin = true;
                     if (addItemSection) addItemSection.style.display = 'block';
+                    if (filterSection) filterSection.style.display = 'block';
                     if (passwordModal) passwordModal.style.display = 'none';
                     document.getElementById('adminPassword').value = '';
                     adminBtn.textContent = '🔓 Admin (Activo)';
                     adminBtn.style.background = 'linear-gradient(135deg, #10b981 0%, #34d399 100%)';
+                    
+                    // Hacer el Pinterest editable si es admin
+                    makeP interestEditable();
+                    
                     renderItems();
                 } else {
                     alert('❌ Contraseña incorrecta');
@@ -463,6 +618,43 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         }
+    }
+
+    // Pinterest link editable para admin
+    function makePinterestEditable() {
+        const pinterestLink = document.getElementById('pinterestLink');
+        if (!pinterestLink) return;
+        
+        // Agregar icono de editar
+        const editIcon = document.createElement('span');
+        editIcon.innerHTML = ' <i class="fas fa-edit" style="font-size: 0.8rem; opacity: 0.7;"></i>';
+        pinterestLink.appendChild(editIcon);
+        
+        // Hacer clickeable para editar
+        pinterestLink.style.cursor = 'pointer';
+        pinterestLink.addEventListener('click', function(e) {
+            if (isAdmin) {
+                e.preventDefault();
+                const newUrl = prompt('Ingresa tu URL de Pinterest:', this.href === '#' ? 'https://pinterest.com/tu-usuario/tablero' : this.href);
+                if (newUrl && (newUrl.startsWith('http://') || newUrl.startsWith('https://'))) {
+                    this.href = newUrl;
+                    localStorage.setItem('pinterestUrl', newUrl);
+                }
+            }
+        });
+        
+        // Cargar URL guardada si existe
+        const savedUrl = localStorage.getItem('pinterestUrl');
+        if (savedUrl) {
+            pinterestLink.href = savedUrl;
+        }
+    }
+    
+    // Cargar Pinterest URL guardada
+    const pinterestLink = document.getElementById('pinterestLink');
+    const savedUrl = localStorage.getItem('pinterestUrl');
+    if (pinterestLink && savedUrl) {
+        pinterestLink.href = savedUrl;
     }
 
     // Renderizar items al cargar

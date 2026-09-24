@@ -15,6 +15,13 @@
                 <img id="profilePic" src="profile.JPG" alt="Tu foto">
             </div>
             <p>Comparte conmigo qué te gustaría recibir</p>
+            
+            <div id="pinterestSection" style="margin-top: 1rem;">
+                <a id="pinterestLink" href="#" target="_blank" class="pinterest-btn">
+                    <i class="fab fa-pinterest"></i> Ver mi tablero de Pinterest
+                </a>
+            </div>
+
             <button id="adminBtn" class="admin-btn">🔑 Admin</button>
         </div>
 
@@ -41,9 +48,18 @@
                         <label for="title">Nombre del artículo</label>
                         <input type="text" id="title" placeholder="Ej: Chaleco butter yellow" required>
                     </div>
-                    <div class="form-group">
-                        <label for="price">Precio aproximado ($)</label>
-                        <input type="number" id="price" placeholder="50000" min="0" step="1000" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Rango de precio ($)</label>
+                    <div style="display: flex; gap: 1rem; align-items: center;">
+                        <div style="flex: 1;">
+                            <input type="number" id="priceMin" placeholder="Mínimo" min="0" step="1000" required>
+                        </div>
+                        <span style="color: #be185d; font-weight: 600;">-</span>
+                        <div style="flex: 1;">
+                            <input type="number" id="priceMax" placeholder="Máximo" min="0" step="1000" required>
+                        </div>
                     </div>
                 </div>
 
@@ -65,8 +81,19 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="shopLinks">Links a tiendas (opcional)</label>
-                    <textarea id="shopLinks" placeholder="Ej: Amazon - https://amazon.com/producto&#10;Falabella - https://falabella.com/producto&#10;Tienda X - https://tiendax.com/producto&#10;&#10;Uno por línea con el formato: Nombre - URL"></textarea>
+                    <label>Links a tiendas (opcional)</label>
+                    <div id="shopLinksContainer">
+                        <div class="shop-link-input">
+                            <input type="text" placeholder="Nombre de la tienda" class="shop-name">
+                            <input type="url" placeholder="URL del producto" class="shop-url">
+                            <button type="button" class="remove-link-btn" onclick="removeShopLink(this)" style="display: none;">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <button type="button" id="addMoreLinksBtn" class="add-more-links-btn">
+                        <i class="fas fa-plus"></i> Agregar otro link
+                    </button>
                 </div>
 
                 <button type="submit" class="add-btn">
@@ -75,14 +102,36 @@
             </form>
         </div>
 
-        <div class="filter-section">
-            <h3>Filtrar por precio</h3>
+        <div class="filter-section" id="filterSection" style="display: none;">
+            <h3>Filtrar y ordenar</h3>
             <div class="price-filter">
-                <label>
-                    <input type="range" id="priceRange" min="0" max="500000" value="500000" step="10000">
-                    <span>Hasta $<span id="priceValue">500.000</span></span>
-                </label>
-                <button id="resetFilter" class="reset-btn">Limpiar filtro</button>
+                <div>
+                    <label style="font-size: 0.9rem;">Rango de precio:</label>
+                    <div style="display: flex; gap: 1rem; align-items: center; margin-top: 0.5rem;">
+                        <div>
+                            <input type="range" id="priceMinRange" min="0" max="1000000" value="0" step="10000" style="width: 150px;">
+                            <span style="font-size: 0.85rem; color: #be185d;">$<span id="priceMinValue">0</span></span>
+                        </div>
+                        <span style="color: #be185d;">-</span>
+                        <div>
+                            <input type="range" id="priceMaxRange" min="0" max="1000000" value="1000000" step="10000" style="width: 150px;">
+                            <span style="font-size: 0.85rem; color: #be185d;">$<span id="priceMaxValue">1.000.000</span></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 1.5rem;">
+                    <label style="font-size: 0.9rem;">Ordenar por:</label>
+                    <select id="sortSelect" style="margin-top: 0.5rem; padding: 0.6rem; border: 1px solid #fbcfe8; border-radius: 8px; color: #6b4d6d;">
+                        <option value="newest">Más nuevos primero</option>
+                        <option value="oldest">Más antiguos primero</option>
+                        <option value="priceLow">Menor precio</option>
+                        <option value="priceHigh">Mayor precio</option>
+                        <option value="random">Aleatorio</option>
+                    </select>
+                </div>
+
+                <button id="resetFilter" class="reset-btn" style="margin-top: 1rem;">Limpiar filtros</button>
             </div>
         </div>
 
